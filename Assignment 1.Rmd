@@ -1,0 +1,20 @@
+---
+title: "Assignment 1"
+author: "Mel Miller"
+date: "9/5/2020"
+output: html_document
+---
+
+# Level 1 title
+
+Here is some text.
+
+## Level 2 title
+
+More Text.
+
+```{r}
+2+2
+```
+
+That was the answer! 
