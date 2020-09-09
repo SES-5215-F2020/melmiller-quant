@@ -1,0 +1,86 @@
+---
+title: "Assignment 1"
+subtitle: Sample Dataset of Older Adults in Massachusetts Compiled from the American Community Survey Public Use Microdata Series API (2018)
+author: "Mel Miller"
+date: "September 9, 2020"
+output:
+  html_document: 
+    toc: true
+    toc_float: true
+---
+# Selecting Variables
+## Person-level data
+All data I selected is from the American Community Survey (2018). To create my dataset, I first loaded all person-level data to select from the 279 variables.  
+```{r, results = 'hide', message = FALSE}
+
+library (tidycensus)
+library (tidyverse)
+
+person_vars_2018 <- pums_variables %>%
+  distinct(year, survey, var_code, 
+           var_label, data_type, level) %>%
+  filter(level == "person", year == 2018, survey == "acs1")
+
+```
+## Household-level data
+During class on Tuesday 9/8, I learned I could incorporate household-level data, specifically the number of persons in a household, into my dataset. To identify this variable, I  loaded all household-level data, which contains a total of 228 variables.
+
+```{r}
+hh_vars_2018 <- pums_variables %>%
+  distinct(year, survey, var_code, 
+           var_label, data_type, level) %>%
+  filter(level == "housing", year == 2018, survey == "acs1")
+```
+
+# Variables Used
+With person as the unit of analysis, the sample population includes older adults in Massachusetts (N = 13,822). I chose to define older adults as those 65 years and older, in line with the [CDC's defintion](https://www.cdc.gov/cdi/definitions/older-adults.html#:~:text=Proportion%20of%20older%20adults%20aged,set%20of%20clinical%20preventive%20services). To compile my dataset, I selected 11 person-level variables (variables 1-11 below) and one household-level variable (variable 12). The 12 selected variables, with the variable name in parentheses, and their type (continuous or categorical) are the following: 
+
+1. Age (AGEP): continuous  
+2. Sex (SEX): categorical  
+3. Race (RAC1P): categorical  
+4. Marital status (MAR): categorical  
+5. Housing tenure (TEN): categorical  
+6. Total income, past 12 months (PINCP): continuous  
+7. Social Security Income, past 12 months (SSP): continuous  
+8. Employment status (ESR): categorical  
+9. When last worked (WKL): categorical  
+10. Independent living difficulty (DOUT): categorical  
+11. Grandparent living with children (GCL): categorical    
+12. Number of persons in respective household (NP): continuous  
+  
+I decided not to transform any variables at this time. However, considerations I would like to keep in mind while analyzing the data include:
+
++ Should I transform age into a categorical variable? I believe whether I do so will depend on what analyses I decide to run using age.
++ What would analyses reveal if I created an income variable that subtracts social security income from total income? Again, I think this answer depends on what analyses I decide to run using income and Social Security Income.  
++ Similar to the first bullet, should I transform number of persons in respective household into a categorical variable? I believe this will depend on the analyses I run, along with the different frequencies of the values within this variable.
+
+```{r, include=FALSE}
+person_data <- get_pums(variables = c("AGEP",
+                                      "SEX", 
+                                      "RAC1P",
+                                      "MAR",
+                                      "TEN", 
+                                      "PINCP",
+                                      "SSP",
+                                      "ESR",
+                                      "WKL",
+                                      "DOUT",
+                                      "GCL",
+                                      "NP"),
+                        state = "MA", 
+                        year = 2018, 
+                        survey = "acs1",
+                        recode = TRUE) %>%
+  filter(AGEP > 64) %>%
+  select(AGEP, SEX_label, RAC1P_label, MAR_label, TEN_label, PINCP, SSP, ESR_label, WKL_label, DOUT_label,GCL_label, NP)
+```
+# Displaying Data 
+The first 10 rows and 9 variables of the dataset are displayed below. The final dataset has 13,822 rows. In other words, my analysis will include 13,822 older adults who reside in Massachusetts.  
+```{r}
+person_data
+```
+
+Lastly, I saved my data as a CSV file that I will use later.
+```{r}
+write_csv(person_data, "people.csv")
+```
