@@ -1,0 +1,309 @@
+---
+title: "Assignment 2"
+author: "Mel Miller"
+date: "9/16/2020"
+output: word_document
+---
+
+# Load Relevant Libraries
+
+I will first load the libraries I'll need to complete this assignment. 
+
+```{r load libraries and attach data, message=FALSE}
+library (tidyverse)
+library (ggplot2)
+
+person_data <- read_csv("people.csv")
+attach(person_data)
+
+```
+
+# Distribution of Continuous Variables
+
+My dataset, filtered for older adults (age 65+) in Massachusetts, contains the following 4 continuous variables:
+
+1. Age (AGEP)
+2. Total income, past 12 months (PINCP) 
+3. Social Security Income, past 12 months (SSP)   
+4. Number of persons in respective household (NP)
+
+For each of these variables, I will include the following statistics:
+
+* Sample mean
+* Standard deviation
+* 95-percent confidence interval for the population mean
+* The interquartile range
+* A histogram to detail the variable's distribution
+
+
+## Age
+
+### Mean, standard deviation, and 95-percent confidence interval
+
+The mean of the age variable in my data set is 74.55, with a standard deviation of 7.85, and a 95-percent confidence interval with a lower limit of 74.42 and upper limit of 74.69 From this point forward, I'll report this data as: *mean* (SD=*SD*, 95% CI: *CI lower limit*, *CI upper limit*). In other words, the sample mean for age is 74.55 (SD=7.85, 95% CI: 74.42, 74.69). 
+
+```{r}
+mean(AGEP)
+sd(AGEP)
+conf_int <- t.test(person_data$AGEP)
+conf_int$conf.int[1]
+conf_int$conf.int[2]
+```
+
+### Interquartile range
+The interquartile range for age is 68 to 79.
+
+```{r}
+quantile(AGEP)
+```
+### Histogram
+
+The histogram for age distribution in my sample is skewed right, meaning that more people in this sample are closer to age 65 than they are to age 95. The unimodal distribution peaks at 75, and there appears to outliers for age 95. Given this gap between age 91 and 95, however, it seems that all folks who were over the age of 91 were coded as 95 years old, probably because the low frequencies of ages over 91. 
+
+```{r}
+
+ggplot(person_data, aes(x = AGEP)) + 
+  geom_histogram(color = "gray",
+                 binwidth = 1) +
+  theme_bw() +
+  scale_x_continuous(name = "Age",
+                     breaks = breaks <- seq(60, 100, by = 5)) + 
+  scale_y_continuous(name = "Number of people in sample") 
+```
+  
+## Total income
+
+### Mean, standard deviation, and 95-percent confidence interval
+
+The sample mean for total income is $46,439.75 (SD=$72,222.61, 95% CI: $45,235.62, $47,643.88). 
+
+```{r}
+mean(PINCP)
+sd(PINCP)
+conf_int <- t.test(person_data$PINCP)
+conf_int$conf.int[1]
+conf_int$conf.int[2]
+```
+
+### Interquartile range
+The interquartile range for total income is $12,900 to $52,000. 
+
+```{r}
+quantile(PINCP)
+```
+### Histogram
+I first ran this histogram with a linear x-axis. The shape was hard to distinguish, and the x-axis was not legible. Placing this histogram on a log x-axis, it is clear that the distribution for total income has a normal distribution, making this a log-normal distribution. 
+```{r}
+
+ggplot(person_data, aes(x = PINCP)) + 
+  geom_histogram(color = "gray",
+                 binwidth=.3) +
+  theme_bw() +
+  scale_x_continuous(name = "Total income",
+                     trans = "log",
+                     breaks = c (10, 100, 1000, 10000, 100000, 1000000),
+                     labels = c ("10", "100", "1,000", "10,000", "100,000", "1,000,000")) + 
+  scale_y_continuous(name = "Number of people in sample") 
+
+```
+
+
+## Social Security Income
+
+### Mean, standard deviation, and 95-percent confidence interval
+
+The sample mean for social security income is $11,936.87 (SD=$9,532.18, 95% CI: $11,777.94, $12,095.79). 
+
+```{r}
+mean(SSP)
+sd(SSP)
+conf_int <- t.test(person_data$SSP)
+conf_int$conf.int[1]
+conf_int$conf.int[2]
+```
+
+### Interquartile range
+The interquartile range for social security income is $2,400 to $18,500.
+
+```{r}
+quantile(SSP)
+```
+### Histogram
+
+The histogram for social security income appears to be  random (i.e., it does not have an apparent pattern). The distribution is greatly impacted by the initial peak at $0. Because of this peak, I considered removing all individuals who do not receive Social Security Income from my sample. However, I am curious to learn more about these folks and their relationships with other variables, and how these relationships differ from those who receive this income. I therefore decided to leave this variable as is for now.  
+
+There also seems to be outliers at $36,400. Similar to the outliers on the age histogram, I wonder if the number of social security incomes over $30,000 is so low that anyone who reported a social security income over this $30,000 had this variable coded as $36,400.
+
+
+```{r}
+
+ggplot(person_data, aes(x = SSP)) + 
+  geom_histogram(color = "gray")+
+  theme_bw() +
+  scale_x_continuous(name = "Social Security Income") + 
+  scale_y_continuous(name = "Number of people in sample")
+
+```
+
+## Household size
+
+### Mean, standard deviation, and 95-percent confidence interval
+
+The sample mean for household size is 2.03 (SD=1.16, 95% CI: 2.01, 2.05). 
+
+```{r}
+mean(NP)
+sd(NP)
+conf_int <- t.test(person_data$NP)
+conf_int$conf.int[1]
+conf_int$conf.int[2]
+```
+
+### Interquartile range
+The interquartile range for household size is 1 to 2.
+
+```{r}
+quantile(NP)
+```
+### Histogram
+This unimodal Poisson distribution is skewed right, with its peak at 2.
+
+```{r}
+
+ggplot(person_data, aes(x = NP)) + 
+  geom_histogram(color = "gray",
+                 binwidth = 1) +
+  theme_bw() +
+  scale_x_continuous(name = "Household size",
+                     breaks = seq(1, 13, by = 1))+
+  scale_y_continuous(name = "Number of people in sample")
+  
+```
+  
+# Distribution of Categorical Variables
+
+My dataset contains the following 8 categorical  variables, all filtered for older adults (age 65+) in Massachusets:
+
+1.	Sex (SEX)
+2.	Race (RAC1P)
+3.	Marital status (MAR)
+4.	Housing tenure (TEN)
+5.	Employment status (ESR)
+6.	When last worked (WKL)
+7.	Independent living difficulty (DOUT)
+8.	Grandparent living with children (GCL)  
+
+For each of these variables, I will include the 95-percent interval for the proportion of the population in each category. At the end of this file, I'll create one table (in Microsoft Word) that details this data for all eight variables.
+
+
+```{r}
+unique(person_data$SEX_label)
+unique(person_data$RAC1P_label)
+unique(person_data$MAR_label)
+unique(person_data$TEN_label)
+unique(person_data$ESR_label)
+unique(person_data$WKL_label)
+unique(person_data$DOUT_label)
+unique(person_data$GCL_label)
+```
+
+## Sex 
+
+```{r}
+
+t.test(person_data$SEX_label=="Female")
+t.test(person_data$SEX_label=="Male")
+
+table (person_data$SEX_label)/sum (table(person_data$SEX_label))
+
+```
+
+## Race 
+
+```{r}
+
+t.test (person_data$RAC1P_label=="White alone")
+t.test (person_data$RAC1P_label=="Black or African American alone")
+t.test (person_data$RAC1P_label=="Some Other Race alone")
+t.test (person_data$RAC1P_label=="Two or More Races")
+t.test (person_data$RAC1P_label=="Asian alone")
+t.test (person_data$RAC1P_label=="American Indian alone")
+t.test (person_data$RAC1P_label=="American Indian and Alaska Native tribes specified; or American Indian or Alaska Native, not specified and no other races")
+
+table (person_data$RAC1P_label)/sum (table(person_data$RAC1P_label))
+
+```
+
+## Marital status 
+
+```{r}
+
+t.test (person_data$MAR_label=="Married")
+t.test (person_data$MAR_label=="Widowed")
+t.test (person_data$MAR_label=="Never married or under 15 years old")
+t.test (person_data$MAR_label=="Divorced")
+t.test (person_data$MAR_label=="Separated")
+
+table (person_data$MAR_label)/sum (table(person_data$MAR_label))
+```
+
+## Housing tenure
+
+```{r}
+
+t.test (person_data$TEN_label=="N/A (GQ/vacant)")
+t.test (person_data$TEN_label=="Owned free and clear")
+t.test (person_data$TEN_label=="Rented")
+t.test (person_data$TEN_label=="Owned with mortgage or loan (include home equity loans)")
+t.test (person_data$TEN_label=="Occupied without payment of rent")
+
+table (person_data$TEN_label)/sum (table(person_data$TEN_label))
+```
+
+## Employment status
+
+```{r}
+
+t.test (person_data$ESR_label=="Not in labor force")
+t.test (person_data$ESR_label=="Civilian employed, at work")
+t.test (person_data$ESR_label=="Civilian employed, with a job but not at work")
+t.test (person_data$ESR_label=="Unemployed")
+
+table (person_data$ESR_label)/sum (table(person_data$ESR_label))
+```
+
+
+## When last worked
+
+```{r}
+
+t.test (person_data$WKL_label=="Over 5 years ago or never worked")
+t.test (person_data$WKL_label=="Within the past 12 months")
+t.test (person_data$WKL_label=="1-5 years ago")
+
+table (person_data$WKL_label)/sum (table(person_data$WKL_label))
+```
+
+
+## Independent living difficulty
+
+```{r}
+
+t.test (person_data$DOUT_label=="Yes")
+t.test (person_data$DOUT_label=="No")
+
+table (person_data$DOUT_label)/sum (table(person_data$DOUT_label))
+```
+
+## Grandparent living with children  
+```{r}
+
+t.test (person_data$GCL_label=="Yes")
+t.test (person_data$GCL_label=="No")
+
+table (person_data$GCL_label)/sum (table(person_data$GCL_label))
+
+```
+# Displaying the Distribution for All Categorical Variables
+
+This is the end of my R Markdown file. The following table displaying the distribution for all categorical variables was created in Microsoft Word.

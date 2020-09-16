@@ -8,6 +8,11 @@ output:
     toc: true
     toc_float: true
 ---
+
+```{r}
+install.packages('ggthemes', dependencies = TRUE)
+```
+
 # Selecting Variables
 ## Person-level data
 All data I selected is from the American Community Survey (2018). To create my dataset, I first loaded all person-level data to select from the 279 variables.  
@@ -15,6 +20,7 @@ All data I selected is from the American Community Survey (2018). To create my d
 
 library (tidycensus)
 library (tidyverse)
+
 
 person_vars_2018 <- pums_variables %>%
   distinct(year, survey, var_code, 
