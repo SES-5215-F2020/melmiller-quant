@@ -1,0 +1,502 @@
+---
+title: "Assignment 3"
+author: "Mel Miller"
+date: "9/16/2020"
+output: 
+  html_document:
+    theme: cosmo
+    toc: true
+    toc_float: true
+---
+
+# Loading data and libraries
+
+Due to the size of my dataset, I've decided to decrease the number of variables to 6, filtering for older adults (age 65+) in Massachusetts. I'll now focus on the following 3 continuous variables:
+
+1. Age (AGEP)
+2. Total income, past 12 months (PINCP) 
+3. Number of persons in respective household (NP)
+
+And the following 3 categorical variables: 
+
+1. Sex (SEX)
+2. Independent living difficulty (DOUT) 
+3. Housing tenure (TEN)
+
+I'll load this data and the libraries I'll need to complete this assignment. 
+
+```{r load libraries and attach data, message=FALSE}
+library (tidyverse)
+library (ggplot2)
+
+person_data <- read_csv("people.csv")
+attach(person_data)
+
+```
+
+# Relationships between two continuous variables
+I'll explore the relationships between the continuous variables in my dataset by using a Pearson's correlation.
+
+## Age and total income
+
+While the correlation between age and total income is weak, it is statistically significant. 
+
+```{r}
+correlation <- cor.test(person_data$AGEP, person_data$PINCP)
+
+correlation
+```
+As seen in the figure, this negative correlation means that as income decreases, age increases.
+```{r, message=FALSE}
+ggplot(person_data, aes(x = AGEP, y = PINCP)) +
+  geom_point(size = 0.5, alpha = 0.25, position = "jitter") +
+  geom_smooth() +
+  theme_bw() +
+  scale_x_continuous(name = "Age",
+                     breaks = breaks <- seq(65, 95, by = 5))+
+  scale_y_continuous(name = "Total Income", 
+                     trans = "log",
+                     breaks = c (10, 100, 1000, 10000, 100000, 1000000),
+                     labels = c ("$10", "$100", "$1,000", "$10,000", "$100,000", "$1,000,000")) +
+  annotate(geom = "text", x = 65, y = 1000000, 
+           label = paste("Correlation (95-percent confidence):",
+                         prettyNum(correlation$conf.int[1], digits = 2), 
+                         "to",
+                         prettyNum(correlation$conf.int[2], digits = 2)),
+           hjust = 0)
+```
+
+## Age and household size
+
+Again, while the correlation between age and household size is weak, it is statistically significant. 
+```{r}
+correlation <- cor.test(person_data$AGEP, person_data$NP)
+
+correlation
+```
+Age and household size are negatively correlated: as age decreases, household size increases. 
+```{r, message=FALSE}
+ggplot(person_data, aes(x = NP, y = AGEP)) +
+  geom_point(size = 0.5, alpha = 0.25, position = "jitter") +
+  geom_smooth() +
+  theme_bw() +
+  scale_x_continuous(name = "Household Size",
+                     breaks = breaks <- seq(1, 13, by = 1))+
+  scale_y_continuous(name = "Age",
+                     breaks = breaks <- seq(65, 95, by = 5)) +
+  annotate(geom = "text", x = 1, y = 60, 
+           label = paste("Correlation (95-percent confidence):",
+                         prettyNum(correlation$conf.int[1], digits = 2), 
+                         "to",
+                         prettyNum(correlation$conf.int[2], digits = 2)),
+           hjust = 0)
+```
+
+## Total income and household size
+As with the previous two relationships, the correlation between total income and household size is weak, but it is statistically significant. 
+
+```{r}
+correlation <- cor.test(person_data$AGEP, person_data$NP)
+
+correlation
+```
+Again, the two variables are negative correlated: as income decreases, household size increases.
+```{r, message=FALSE}
+ggplot(person_data, aes(x = NP, y = PINCP)) +
+  geom_point(size = 0.5, alpha = 0.25, position = "jitter") +
+  geom_smooth() +
+  theme_bw() +
+  scale_x_continuous(name = "Household Size",
+                     breaks = breaks <- seq(1, 13, by = 1))+
+  scale_y_continuous(name = "Total Income", 
+                     trans = "log",
+                     breaks = c (10, 100, 1000, 10000, 100000, 1000000),
+                     labels = c ("$10", "$100", "$1,000", "$10,000", "$100,000", "$1,000,000")) +
+  annotate(geom = "text", x = .25, y = 20, 
+           label = paste("Correlation (95-percent confidence):",
+                         prettyNum(correlation$conf.int[1], digits = 2), 
+                         "to",
+                         prettyNum(correlation$conf.int[2], digits = 2)),
+           hjust = 0)
+```
+
+# Relationship between a continuous variable and a binary variable
+I'll explore the relationships between the continuous variables and the binary categorical variables in my dataset by using a two-sample t-test
+
+## Sex and continuous variables
+
+### Sex and age
+
+To answer the question, "Does age of older adults vary by sex?" I used a two-sample t-test. This test reveals that there is a significant relationship between age and sex, with females, on average, having a slightly older age than males (75.31 vs. 73.59, p<.001). 
+
+```{r}
+difference = t.test(AGEP ~ SEX_label == "Female",
+                    data = person_data)
+
+difference
+```
+The violin plot below also allows us to see this difference, along with how the overall distribution of age compares by sex.
+```{r}
+ggplot(person_data, aes(x = SEX_label, y = AGEP)) +
+  geom_violin() +
+  theme_bw() +
+  scale_x_discrete(name = "Sex",
+                   labels = c("Male", "Female")) +
+   scale_y_continuous(name = "Age", 
+                     breaks = seq(65, 95, by = 5),
+                     labels = paste(prettyNum(seq(65, 95, by = 5),
+                                              big.mark = ","))) +
+  annotate(geom = "text", x = 1.5, y = 90, size = 3,
+           label = paste("Difference in means\n(95% confidence):\n",
+                         prettyNum(abs(difference$conf.int[2]), 
+                                   digits = 3), " to ",
+                         prettyNum(abs(difference$conf.int[1]), 
+                                   digits = 3),
+                         sep = "")) +
+  annotate(geom = "text", x = 1, y = difference$estimate[1], size = 3,
+           label = paste("Mean (95% \nconfidence):",
+                         prettyNum(difference$estimate[1], digits = 4))) +
+  annotate(geom = "text", x = 2, y = difference$estimate[2], size = 3,
+           label = paste("Mean (95% \nconfidence):",
+                         prettyNum(difference$estimate[2], digits = 4)))
+```
+
+### Sex and total income
+
+The t-test to answer the question, "Do incomes of older adults vary by sex?," reveals that there is a significant relationship between incomes and sex. On average, males earn nearly twice as much as females ($62,269.35 vs. $34,095.68, p<.001).
+
+```{r}
+difference = t.test(PINCP ~ SEX_label == "Female",
+                    data = person_data)
+
+difference
+```
+I used a log scale for the violin plot to enable an overall better visual of income by sex. However, I do not think the visual communicates the great difference in average income between males and females.
+```{r, message=FALSE}
+ggplot(person_data, aes(x = SEX_label, y = PINCP)) +
+  geom_violin() +
+  theme_bw() +
+  scale_x_discrete(name = "Sex",
+                   labels = c("Male", "Female")) +
+   scale_y_continuous(name = "Total Income", 
+                     trans = "log",
+                     breaks = c (10, 100, 1000, 10000, 100000, 1000000),
+                     labels = c ("$10", "$100", "$1,000", "$10,000", "$100,000", "$1,000,000")) +
+  annotate(geom = "text", x = 1.5, y = 700000, size = 3,
+           label = paste("Difference in means\n(95% confidence):\n$",
+                         prettyNum(abs(difference$conf.int[2]), 
+                                   digits = 3), " to $",
+                         prettyNum(abs(difference$conf.int[1]), 
+                                   digits = 3),
+                         sep = "")) +
+  annotate(geom = "text", x = 1, y = difference$estimate[1], size = 3,
+           label = paste("Mean (95% confidence):\n$",
+                         prettyNum(difference$estimate[1], digits = 3))) +
+  annotate(geom = "text", x = 2, y = difference$estimate[2], size = 3,
+           label = paste("Mean (95% confidence):\n$",
+                         prettyNum(difference$estimate[2], digits = 3)))
+```
+
+### Sex and household size
+
+I used a two-sample t-test to answer the question, "Does household size among older adults vary by sex?" This test reveals that there is a significant relationship between household size and sex, although the difference is small. While the average household size for males is 2.13, the average household size for females is 1.95; this relationship is significant at a p value less than .001. 
+
+```{r}
+difference = t.test(NP ~ SEX_label == "Female",
+                    data = person_data)
+
+difference
+```
+Again, I am not sure just how helpful the violin plot is, although I do think it communicates some differences in household size among the two sexes.
+
+*Note: for the violin plot, the text for the mean values is not at the location of the mean values. I moved it to make the text more legible.*
+```{r}
+ggplot(person_data, aes(x = SEX_label, y = NP)) +
+  geom_violin() +
+  theme_bw() +
+  scale_x_discrete(name = "Sex",
+                   labels = c("Male", "Female")) +
+   scale_y_continuous(name = "Household size", 
+                     breaks = seq(1, 13, by = 1)) +
+  annotate(geom = "text", x = 1.5, y = 12, size = 3,
+           label = paste("Difference in means\n(95% confidence):",
+                         prettyNum(abs(difference$conf.int[2]), 
+                                   digits = 2), " to ",
+                         prettyNum(abs(difference$conf.int[1]), 
+                                   digits = 2),
+                         sep = "")) +
+  annotate(geom = "text", x = 1, y = 8, size = 3,
+           label = paste("Mean (95% confidence):",
+                         prettyNum(difference$estimate[1], digits = 3))) +
+  annotate(geom = "text", x = 2, y = 8, size = 3,
+           label = paste("Mean (95% confidence):",
+                         prettyNum(difference$estimate[2], digits = 3)))
+```
+
+## Independent living difficulty and continuous variables
+
+### Independent living difficulty and age
+
+I also used a two sample t-test to answer the question, "Does age of older adults vary by independent living difficulty?" This test reveals that there is a significant relationship between independent living difficulty and age, with the average age of folks without an independent living difficulty much younger than that of those with an independent living difficulty (73.11 vs. 81.81, p<.001). 
+
+
+```{r}
+difference = t.test(AGEP ~ DOUT_label == "Yes",
+                    data = person_data)
+
+difference
+```
+The violin plot clearly communicates this relationship, as we see a concentration of younger folks without independent living difficulties, and a concentration of older folks with independent living difficulties.
+```{r}
+ggplot(person_data, aes(x = DOUT_label, y = AGEP)) +
+  geom_violin() +
+  theme_bw() +
+  scale_x_discrete(name = "Independent Living Difficulty",
+                   labels = c("No", "Yes")) +
+   scale_y_continuous(name = "Age", 
+                     breaks = seq(65, 95, by = 5),
+                     labels = paste(prettyNum(seq(65, 95, by = 5),
+                                              big.mark = ","))) +
+  annotate(geom = "text", x = 1.5, y = 90, size = 3,
+           label = paste("Difference in means\n(95% confidence):\n",
+                         prettyNum(abs(difference$conf.int[2]), 
+                                   digits = 4), " to ",
+                         prettyNum(abs(difference$conf.int[1]), 
+                                   digits = 4),
+                         sep = "")) +
+  annotate(geom = "text", x = 1, y = difference$estimate[1], size = 3,
+           label = paste("Mean (95% \nconfidence):\n",
+                         prettyNum(difference$estimate[1], digits = 4))) +
+  annotate(geom = "text", x = 2, y = difference$estimate[2], size = 3,
+           label = paste("Mean (95% \nconfidence):\n",
+                         prettyNum(difference$estimate[2], digits = 4)))
+```
+
+### Independent living difficulty and total income
+
+The two-sample t-test I used to answer the question, "Do incomes of older adults vary by independent living difficulty?," reveals that there is a significant relationship between independent living difficulty and income. The average income of folks without an independent living difficulty is nearly twice as high as that of those with an independent living difficulty ($51,095.68 vs. $23,054.58, p<.001). 
+
+```{r}
+difference = t.test(PINCP ~ DOUT_label == "Yes",
+                    data = person_data)
+
+difference
+```
+The violin plot does a better job of communicating this difference than it did with sex and total income - I believe this is because of how these means fall along the log y-axis, and how the incomes in each category are distributed overall.  
+
+Knowing that incomes decrease by age, and that independent living difficulty increases by age, I think it would be important to look at this relationship controlling for age to better understand the relationship between independent living difficulty and total income. 
+
+```{r, message=FALSE}
+ggplot(person_data, aes(x = DOUT_label, y = PINCP)) +
+  geom_violin() +
+  theme_bw() +
+  scale_x_discrete(name = "Independent Living Difficulty",
+                   labels = c("No", "Yes")) +
+   scale_y_continuous(name = "Total Income", 
+                     trans = "log",
+                     breaks = c (10, 100, 1000, 10000, 100000, 1000000),
+                     labels = c ("$10", "$100", "$1,000", "$10,000", "$100,000", "$1,000,000")) +
+  annotate(geom = "text", x = 1.5, y = 700000, size = 3,
+           label = paste("Difference in means\n(95% confidence):\n$",
+                         prettyNum(abs(difference$conf.int[2]), 
+                                   digits = 3), " to ",
+                         prettyNum(abs(difference$conf.int[1]), 
+                                   digits = 3),
+                         sep = "")) +
+  annotate(geom = "text", x = 1, y = difference$estimate[1], size = 3,
+           label = paste("Mean (95% confidence):\n$",
+                         prettyNum(difference$estimate[1], digits = 3))) +
+  annotate(geom = "text", x = 2, y = difference$estimate[2], size = 3,
+           label = paste("Mean (95% confidence):\n$",
+                         prettyNum(difference$estimate[2], digits = 3)))
+```
+
+### Independent living difficulty and household size
+
+This last two-sample t-test answers the question, "Does household size among older adults vary by independent living difficulty?" This test reveals that there is a significant relationship between household size and independent living difficulty at a p value less than .001, although the difference is again small. While the average household size for folks without an independent living difficulty is 2.08, the average household size for folks with an independent living difficulty is 1.77.
+
+```{r}
+difference = t.test(NP ~ DOUT_label == "Yes",
+                    data = person_data)
+
+difference
+```
+While I don't think the violin plot is a very helpful visualization, I think it allows for an understanding of some differences in household size by males sex.
+
+*Note: for the violin plot, the text for the mean values is not at the location of the mean values. I moved it to make the text more legible.*
+```{r}
+ggplot(person_data, aes(x = DOUT_label, y = NP)) +
+  geom_violin() +
+  theme_bw() +
+  scale_x_discrete(name = "Independent Living Difficulty",
+                   labels = c("No", "Yes")) +
+   scale_y_continuous(name = "Household size", 
+                     breaks = seq(1, 13, by = 1)) +
+  annotate(geom = "text", x = 1.5, y = 12, size = 3,
+           label = paste("Difference in means\n(95% confidence):",
+                         prettyNum(abs(difference$conf.int[2]), 
+                                   digits = 3), " to ",
+                         prettyNum(abs(difference$conf.int[1]), 
+                                   digits = 2),
+                         sep = "")) +
+  annotate(geom = "text", x = 1, y = 8, size = 3,
+           label = paste("Mean (95% confidence):",
+                         prettyNum(difference$estimate[1], digits = 3))) +
+  annotate(geom = "text", x = 2, y = 8, size = 3,
+           label = paste("Mean (95% confidence):",
+                         prettyNum(difference$estimate[2], digits = 3)))
+```
+
+# Relationship between a continuous variable and categorical variable with more than two levels
+
+I'll explore the relationships between the continuous variables and the only categorical variable with more than two levels in my dataset by using Analysis of Variance (ANOVA) and Tukey’s Honestly Significant Difference (HSD) test.
+
+## Housing tenure and age
+The ANOVA indicates that with a p value less than .001, there is a significant relationship between the type of housing tenure and age.
+
+```{r}
+anova <- aov(AGEP ~ TEN_label, data = person_data)
+
+summary(anova)
+
+```
+
+Since this relationship is statistically significant, I'll run a Tukey's HSD test to see the magnitude of differences among the difference category, followed by a boxplot to visualize the differences.
+
+```{R}
+differences <- TukeyHSD(anova)
+
+as_tibble(cbind(pair = row.names(differences$TEN_label),
+                differences$TEN_label))
+```
+
+The boxplot allows for an easy understanding of how the means and overall distribution of age for each type of housing tenure differ. For example, here we see that, on average, ages are lowest for home owners with mortgages and highest for individuals report N/A for housing tenure. As stated in previous assignments, I believe this N/A group is comprised of folks who live in assisted living or nursing facilities, and therefore it makes sense to me that they would be older than folks of other housing tenures.
+
+```{r}
+ggplot(person_data, aes(x = TEN_label, y = AGEP)) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_x_discrete(name = "Housing Tenure",
+                   labels = c ("N/A\n(GQ/vacant)", "Occupied\n w/o rent", "Owned", "Owned w/\nmortgage", "Rented")) +
+  scale_y_continuous(name = "Age", 
+                     breaks = seq(65, 95, by = 5)) 
+```
+
+## Housing tenure and total income
+
+The ANOVA indicates that with a p value less than .001, there is a significant relationship between the type of housing tenure and total income.
+
+```{r}
+anova <- aov(PINCP ~ TEN_label, data = person_data)
+
+summary(anova)
+
+```
+
+Again, since this relationship is statistically significant, I'll run a Tukey's HSD test to see the magnitude of differences among the difference category, followed by a boxplot to visualize the differences.
+
+```{R}
+differences <- TukeyHSD(anova)
+
+as_tibble(cbind(pair = row.names(differences$TEN_label),
+                differences$TEN_label))
+```
+
+Although it's hard to see the exact differences in income among the different types of housing tenure, I think this boxplot does a great job of communicating a basic understanding of these differences. Here we see that total income is, on average, lowest for folks with N/A housing tenure, followed by those who rent, those who occupy their homes without payment of rent, and those who own their homes free and clear. The highest average incomes are among those who own their homes with mortgages or loans.
+
+```{r, message=FALSE}
+ggplot(person_data, aes(x = TEN_label, y = PINCP)) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_x_discrete(name = "Housing Tenure",
+                   labels = c ("N/A\n(GQ/vacant)", "Occupied\n w/o rent", "Owned", "Owned w/\nmortgage", "Rented")) +
+  scale_y_continuous(name = "Total Income", 
+                     trans = "log",
+                     breaks = c (10, 100, 1000, 10000, 100000, 1000000),
+                     labels = c ("$10", "$100", "$1,000", "$10,000", "$100,000", "$1,000,000")) 
+```
+
+## Housing tenure and household size
+
+The ANOVA indicates that with a p value less than .001, there is a significant relationship between the type of housing tenure and household size.
+
+```{r}
+anova <- aov(NP ~ TEN_label, data = person_data)
+
+summary(anova)
+
+```
+
+As with the previous two relationships, since this relationship is also statistically significant, I'll run a Tukey's HSD test to see the magnitude of differences among the difference category, followed by a boxplot to visualize the differences. 
+
+```{r}
+differences <- TukeyHSD(anova)
+
+as_tibble(cbind(pair = row.names(differences$TEN_label),
+                differences$TEN_label))
+```
+
+The boxplot clearly communicates that the average household size for the N/A group is smaller and has the least variation than any other housing tenure. We also see that the largest household size is, on average, among those who own their homes with mortgages or loans.
+```{r, message=FALSE}
+ggplot(person_data, aes(x = TEN_label, y = NP)) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_x_discrete(name = "Housing Tenure",
+                   labels = c ("N/A\n(GQ/vacant)", "Occupied\n w/o rent", "Owned", "Owned w/\nmortgage", "Rented")) +
+  scale_y_continuous(name = "Household Size",
+                     breaks = breaks <- seq(1, 13, by = 1)) 
+```
+
+
+# Relationship between two categorical variables
+
+I'll explore the relationships between the categorical variables in my dataset by using a chi-square test.
+
+## Sex and independent living difficulty 
+
+The relationship between sex and independent living difficulty is significant at a 95-percent confidence level (p<.001). 
+```{r}
+chi_sq <- chisq.test(person_data$SEX_label, person_data$DOUT_label == 
+                       "Yes") 
+
+chi_sq
+```
+The first set of values shows what is observed for each combination of variables, with "true" representing having an independent living difficulty. The second set of values shows what would be expected if the two variables were not related. According to these values, it seems that women with independent living difficulties are over represented in the sample, and we would expect to have seen more men with independent living difficulties than we did.
+
+```{r}
+chi_sq$observed
+chi_sq$expected
+```
+
+## Sex and housing tenure
+The relationship between sex and housing tenure is significant at a 95-percent confidence level (p<.001). 
+```{r}
+chi_sq <- chisq.test(person_data$TEN_label, person_data$SEX_label == "Female") 
+
+chi_sq
+```
+The first set of values shows what is observed for each combination of variables, with "true" representing females. The second set of values shows what would be expected if the two variables were not related. The difference that stands out to me the most is the one observed with the N/A housing tenure group. Here we see that there are less males (and more females) than expected. 
+
+```{r}
+chi_sq$observed
+chi_sq$expected
+```
+
+## Independent living difficulty and housing tenure
+The relationship between independent living difficulty and housing tenure is significant at a 95-percent confidence level (p<.001). 
+```{r}
+chi_sq <- chisq.test(person_data$TEN_label, person_data$DOUT_label == 
+                       "Yes") 
+
+chi_sq
+```
+
+The first set of values shows what is observed for each combination of variables, with "true" representing having an independent living difficulty. The second set of values shows what would be expected if the two variables were not related. Again, the difference among the N/A group is quite substantial, with the expected values for males being a lot higher than observed, and the expected values for females being a lot lower than observed. There are differences for the other four categories of housing tenure as well, although these are not nearly as large as the differences observed with the N/A group. 
+
+```{r}
+chi_sq$observed
+chi_sq$expected
+```
