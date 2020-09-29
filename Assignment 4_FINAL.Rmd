@@ -1,0 +1,55 @@
+---
+title: "Assignment 4"
+author: "Mel Miller"
+date: "9/29/2020"
+output: 
+  html_document:
+    theme: cosmo
+    toc: true
+    toc_float: true
+---
+
+# Loading data and relevant libraries
+
+First, I'll load the tidyverse library and my dataset. As a reminder, my dataset is filtered for older adults (65+) in Massachusetts.
+
+```{r attach data, message=FALSE}
+library (tidyverse)
+
+person_data <- read_csv("people.csv")
+attach(person_data)
+
+```
+
+# Estimating a regression model
+
+I'm interested in a linear regression that predicts total income based on age, household size, sex, independent living difficulty, and housing tenure. In other words, total income is the dependent variable I'll be exploring; age, household size, sex,  independent living difficulty, and housing tenure are the independent variables.
+
+
+```{r}
+model <- lm(PINCP ~ AGEP + NP + SEX_label + DOUT_label + TEN_label,
+            data = person_data)
+
+summary(model)
+```
+
+# Interpreting the linear regression
+
+In order to consider overall model fit, I'll refer to the multiple R-squared value, which for this model is 0.07572. This means that the model predicts about 8% of the variation in total income of older adults in this dataset.
+
+Looking at the values and significance of the individual model coefficients, I can understand how much change in total income I can expect for each unit of change in the independent variable. First looking at age, we see that the coefficient estimate is -546.0. This means that for each additional year of a person's age, the income for that person decreases by $546, when controlling for the differences in household size, sex, independent living difficulty, and housing tenure.  
+
+Next, the coefficient estimate of household size is -5127.5 This means that for each additional person in an older adult's household, the older adult's income decreases on average by $5,127.50, when controlling for the other variables in the model.
+
+The coefficient estimate for males is 25527.3. This means that male older adults on average have a total income $25,527.30 greater than female older adults, controlling for all other variables in the model.
+
+The coefficient estimate for having an independent living difficulty is -9481.1, meaning that older adults with an independent living difficulty have a total income, on average, $9,481.10 less than older adults without an independent living difficulty, controlling for all other variables in the model.
+
+For housing tenure, all coefficient estimates are compared to a housing tenure of N/A (G/Q/vacant). I'll refer to these folks as having a housing tenure of N/A. The coefficient estimate for housing occupied without payment of rent is 15887.5, 28311.3 for owned free and clear, 34099.6 for owned with mortgage or loan, and 8365.7 for rented. This means that, when compared to those with a housing tenure of N/A, total income, on average and when controlling for the other variables in the mode, is:
+
+* $15,887.50 more for older adults who occupy their homes without paying rent
+* $28,311.30 more for older adults who own their homes free and clear
+* $34,099.60 more for older adults who own their homes with a mortgage or loan
+* $8,365.70 more for older adults who rent their homes
+
+All variables in this model are statistically significant at a 95-percent confidence level, with p-values less than .001. 
