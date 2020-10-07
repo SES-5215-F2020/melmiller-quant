@@ -1,0 +1,226 @@
+---
+title: "Assignment 5"
+author: "Mel Miller"
+date: "10/7/2020"
+output: 
+  html_document:
+    theme: cosmo
+    toc: true
+    toc_float: true
+---
+
+# Loading data and relevant libraries
+
+First, I'll load the tidyverse library and my dataset. As a reminder, my dataset is filtered for older adults (65+) in Massachusetts. I'll also exclude folks whose total incomes are $0 or less for the purpose of analyses.
+
+```{r attach data, message=FALSE}
+library (tidyverse)
+library(jtools)
+library(interactions)
+library(knitr)
+
+person_data <- read_csv("people.csv")
+attach(person_data)
+
+person_data_recode <- person_data %>%
+  filter (PINCP > 0)
+```
+
+# Regression models 
+
+## Model 1: Initial regression model
+
+In assignment 4, I used age, household size, sex, independent living difficulty, and housing tenure to predict total income. For this assignment, I'm going to alter the model and the dependent variable be age, and have total income an independent variable. I found that the previous model was simple and not very informative. I wonder what it might look like if I make age the dependent variable, and make income an independent variable, along with the other independent variables: household size, sex, independent living difficulty, and housing tenure.  
+
+As stated earlier, this model also excludes folks whose total incomes are $0 or less (which the model in Assignment 4 included).  
+```{r}
+model1 <- lm(AGEP ~ PINCP + NP + SEX_label + DOUT_label + TEN_label,
+            data = person_data_recode)
+
+summary(model1)
+```
+
+The model predicts about 8% of the variation in age of older adults in this dataset.
+
+
+## Model 2: Converting a continuous variable to a categorical varaible
+
+I'm curious if there is less of a linear effect with income than how I've been thinking about it. I'll convert income from a continuous to categorical variable, referring to the interquartile range to mutate the variable into categories.
+
+```{r}
+person_data_recode <- person_data_recode %>%
+  mutate (DC_PINCP = case_when(PINCP  < 14092.5 ~ "Less than $14,092.50",
+                           PINCP  >= 14092.5 & PINCP <27000.0 ~ "$14,092.50 to $27,000",
+                           PINCP  >= 27000.0 & PINCP <54040.0 ~ "$27,000 to $54,040",
+                           PINCP >= 54040.0 ~ "$54,040 or more"))
+
+model2 <- lm(AGEP ~ DC_PINCP + NP + SEX_label + DOUT_label + TEN_label,
+            data = person_data_recode)
+
+summary(model2)
+```
+
+The model fit is better than the first model - but the difference is small. 
+
+## Model 3: Log transform income
+
+I'll log transform income to see the impact this has on the initial model.
+
+```{r}
+
+model3 <- lm(AGEP ~ log(PINCP) + NP + SEX_label + DOUT_label + TEN_label,
+            data = person_data_recode)
+
+summary(model3)
+```
+
+I'm surprised that this model has a poorer fit compared to the fit of the previous two models.
+
+## Model 4: Adding an interaction term
+
+Lastly, I'll see what effect independent living difficulty has on all of the other relationships within the initial model.
+
+```{r}
+model4 <- lm(AGEP ~ PINCP + NP + SEX_label + DOUT_label + TEN_label +
+PINCP:DOUT_label + NP:DOUT_label + SEX_label:DOUT_label + TEN_label:DOUT_label,
+            data = person_data_recode)
+
+summary(model4)
+```
+
+Among these four models, this model fit is the best.
+
+# Visualizing model fit differences
+
+```{r}
+ModelFit <- tibble(model = c(1, 2, 3, 4),
+                   R_square = c(summary(model1)$adj.r.squared,
+                                summary(model2)$adj.r.squared,
+                                summary(model3)$adj.r.squared,
+                                summary(model4)$adj.r.squared))
+
+ggplot(ModelFit, aes(x = model, y = R_square)) +
+  geom_line() +
+  scale_x_continuous(name = "",
+                   breaks = breaks <- seq(1, 4, by = 1),
+                   labels = paste("Model", breaks)) +
+  scale_y_continuous(name = "Adjusted R-squared value") +
+  theme_bw()
+```
+
+Here we clearly see that Model 4 is the best fitting model, although the difference is small (less than 2% better than the initial model).  
+
+Here are the results of Model 4 compared to Model 1 (the initial model).
+
+```{r}
+
+coeff_names <- c ("Total income" = "PINCP",
+                "Household size" = "NP",
+                "Male\n(compared to female)" = "SEX_labelMale",
+                "Independent living difficulty\n(compared to no difficulty)"="DOUT_labelYes",
+                "Rent-free home\ncompared to group quarters" = "TEN_labelOccupied without payment of rent",
+                "Own home free and clear\ncompared to group quarters" = "TEN_labelOwned free and clear",
+                "Own home with mortgage\ncompared to group quarters" = "TEN_labelOwned with mortgage or loan (include home equity loans)",
+                "Rented home\ncompared to group quarters"="TEN_labelRented",
+                "Having an independent living difficulty \nAND total income" = "PINCP:DOUT_labelYes",
+                "Having an independent living difficulty\nAND household size" = "NP:DOUT_labelYes",
+                "Having an independent living difficulty\nAND being male (compared to female)" = "SEX_labelMale:DOUT_labelYes",
+                "Having an independent living difficulty\nAND living in a rent-free home\n(compared to group quarters)" = "DOUT_labelYes:TEN_labelOccupied without payment of rent",
+                "Having an independent living difficulty\nAND living in a owned home free and clear\n(compared to group quarters)" = "DOUT_labelYes:TEN_labelOwned free and clear",
+                "Having an independent living difficulty\nAND living in an owned home with mortgage\n(compared to group quarters)" = "DOUT_labelYes:TEN_labelOwned with mortgage or loan (include home equity loans)",
+                "Having an independent living difficulty\nAND living in a rented home\n(compared to group quarters)"="DOUT_labelYes:TEN_labelRented")
+
+export_summs(model1, model4, 
+             error_format = "(p = {p.value})",
+             error_pos = "same",
+             model.names = c("Initial model", "Preferred model"),
+             coefs = coeff_names)
+```
+
+# Visualizing regression results
+
+I'll visualize the relationships for Model 4 (the preferred model).  
+
+First, here are the 95-percent confidence intervals for the each of the coefficients in the model.
+
+```{r}
+coeff_desc <- c("Total income" = "PINCP",
+                "Household size" = "NP",
+                "Male\n(compared to female)" = "SEX_labelMale",
+                "Independent living difficulty\n(compared to no difficulty)"="DOUT_labelYes",
+                "Rent-free home\ncompared to group quarters" = "TEN_labelOccupied without payment of rent",
+                "Own home free and clear\ncompared to group quarters" = "TEN_labelOwned free and clear",
+                "Own home with mortgage\ncompared to group quarters" = "TEN_labelOwned with mortgage or loan (include home equity loans)",
+                "Rented home\ncompared to group quarters"="TEN_labelRented",
+                "Having an independent living difficulty \nAND total income" = "PINCP:DOUT_labelYes",
+                "Having an independent living difficulty\nAND household size" = "NP:DOUT_labelYes",
+                "Having an independent living difficulty\nAND being male (compared to female)" = "SEX_labelMale:DOUT_labelYes",
+                "Having an independent living difficulty\nAND living in a rent-free home (compared to group quarters)" = "DOUT_labelYes:TEN_labelOccupied without payment of rent",
+                "Having an independent living difficulty\nAND living in a owned home free and clear (compared to group quarters)" = "DOUT_labelYes:TEN_labelOwned free and clear",
+                "Having an independent living difficulty\nAND living in an owned home with mortgage (compared to group quarters)" = "DOUT_labelYes:TEN_labelOwned with mortgage or loan (include home equity loans)",
+                "Having an independent living difficulty\nAND living in a rented home (compared to group quarters)"="DOUT_labelYes:TEN_labelRented")
+
+plot_coefs(model4, 
+           coefs = coeff_desc,
+           plot.distributions = TRUE,
+           rescale.distributions = TRUE) +
+  scale_x_continuous(name = "Effect on age")
+```
+
+The following graph shows the predicted relationship between total income and age, for older adults with and without an independent living difficulty, holding all other variables at their means.
+
+```{r}
+interact_plot(model4, pred = PINCP, modx = DOUT_label, interval = TRUE) +
+  scale_x_continuous(name = "Annual income (thousands)",
+                     limits = c(0, 500000),
+                     breaks = breaks <- seq(0, 500000, by = 50000),
+                     labels = paste("$", 
+                                    prettyNum(breaks/1000, big.mark = "'"),
+                                    sep = "")) +
+  scale_y_continuous(name = "Age (years)",
+                     breaks = seq(65, 120, by = 5)) +
+  scale_color_discrete (name = "Independent living difficulty") + 
+  scale_linetype_discrete(name = "Independent living difficulty") +
+  scale_fill_discrete(name = "Independent living difficulty") 
+```
+
+The following graph shows the predicted relationship between household size and age, for older adults with and without an independent living difficulty, holding all other variables at their means.
+
+```{r}
+interact_plot(model4, pred = NP, modx = DOUT_label, interval = TRUE) +
+  scale_x_continuous(name = "Household size",
+                     breaks = seq (1, 15, by = 1)) +
+  scale_y_continuous(name = "Age (years)",
+                     breaks = seq (65, 90, by = 5)) +
+  scale_color_discrete (name = "Independent living difficulty") + 
+  scale_linetype_discrete(name = "Independent living difficulty") +
+  scale_fill_discrete(name = "Independent living difficulty") 
+```
+
+The following graph shows the predicted relationship between sex and age, for older adults with and without an independent living difficulty, holding all other variables at their means.
+
+```{r} 
+cat_plot(model4, pred = SEX_label, modx = DOUT_label, interval = TRUE) +
+ scale_x_discrete(name = "Sex") +
+  scale_y_continuous(name = "Age (years)",
+                     breaks = seq(65, 100, by = 5)) + 
+  
+  scale_color_discrete (name = "Independent living difficulty") + 
+  scale_linetype_discrete(name = "Independent living difficulty") +
+  scale_fill_discrete(name = "Independent living difficulty") 
+```
+
+This last graph shows the predicted relationship between housing tenure and age, for older adults with and without an independent living difficulty, holding all other variables at their means.
+
+```{r} 
+cat_plot(model4, pred = TEN_label, modx = DOUT_label, interval = TRUE) +
+ scale_x_discrete(name = "Housing tenure",
+                  labels = c("Group\nquarters", "Rent-free\nhome",
+                               "Own home", "Own home with\n mortgage", "Rented")) +
+  scale_y_continuous(name = "Age (years)",
+                     breaks = seq (60, 90, by=5)) + 
+  scale_color_discrete (name = "Independent living difficulty") + 
+  scale_linetype_discrete(name = "Independent living difficulty") +
+  scale_fill_discrete(name = "Independent living difficulty") 
+```
+
